@@ -31,26 +31,23 @@ public class Principal {
         int contadorClientes = 0;
         String nombreBarbero;
 
+        // Nombre del barbero
+        nombreBarbero = "Barbero Juan";
+        // Se instancia el hilo barbero
+        hiloBarbero = new Thread(new Barbero(barberia), nombreBarbero);
+
         try {
 
             do {
 
-                // Menú
-                System.out.println("\nMenú");
-                System.out.println("1. Enviar clientes");
-                System.out.println("2. Consultar estadísticas");
-                System.out.println("3. Cerrar barbería");
-                System.out.print("Introduce una opción: ");
-                opcion = teclado.nextInt();
+                // Mostra menú de opciones
+                opcion=barberia.mostrarMenuOpciones();
+                
 
                 switch (opcion) {
 
                     case 1:
 
-                        // Nombre del barbero
-                        nombreBarbero = "Barbero Juan";
-                        // Se lanza el hilo barbero
-                        hiloBarbero = new Thread(new Barbero(barberia), nombreBarbero);
                         hiloBarbero.start();
                         // Se reinicia la variable volverAlMenu
                         barberia.setVolverAlMenu(false);
@@ -71,8 +68,7 @@ public class Principal {
                             listaClientes[i] = hiloCliente;
                             listaClientes[i].start();
                         }
-                        // El hilo barbero espera
-                        hiloBarbero.join();
+                        
                         // Los hilos clientes se esperan
                         for (int i = 0; i < listaClientes.length; i++) {
                             listaClientes[i].join();
@@ -88,6 +84,9 @@ public class Principal {
                     case 3:
                         barberia.cerrarBarberia();
                         barberia.mostrarBalance();
+                        // El hilo barbero espera solo cuando se cierre la barbería
+                        hiloBarbero.join();
+            
                         System.out.println("\n---BARBERIA CERRADA---\n");
 
                         break;
@@ -97,8 +96,9 @@ public class Principal {
 
                 }
 
-            } while (opcion != 3);
+            } while (opcion != 3 || barberia.isVolverAlMenu());
 
+            
             // Cierre de recursos
             teclado.close();
 
