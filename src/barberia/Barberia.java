@@ -14,231 +14,206 @@ import java.util.Scanner;
  */
 public class Barberia {
 
-    // Declaración de atributos públicos estáticos
-    public static int clientesAtendidos = 0;
-    public static double dineroRecaudado = 0d;
-    public static int clientesNoAtendidos = 0;
+    // Declaración de variables
+    private int numClientesAtendidos;
+    private float totalDineroRecaudado;
+    private int numClientesNoAtendidos;
+    private boolean ocupado;
+    private final Deque<String> listaEspera = new LinkedList<>();
+    private boolean abierta;
+    private final int numSillas;
+    private final float precioPelado;
+    private long tiempoPelado;
+    private boolean mostrarMenu;
 
-    // Declaración de atributos
-    private boolean cerrado = false;
-    private Deque<String> salaEspera = new LinkedList<>();
-    private boolean volverAlMenu = false;
-    private int numSillas;
-    private boolean ocupado = false;
+    /**
+     * Variable estática
+     */
+    public static int contadorClientes;
 
-    // Métodos Getters y Setters
-    public static synchronized int getClientesAtendidos() {
-        return clientesAtendidos;
-    }
-
-    public static synchronized void setClientesAtendidos(int clientesAtendido) {
-        Barberia.clientesAtendidos = clientesAtendido;
-    }
-
-    public static double getDineroRecaudado() {
-        return dineroRecaudado;
-    }
-
-    public static void setDineroRecaudado(double dineroRecaudado) {
-        Barberia.dineroRecaudado = dineroRecaudado;
-    }
-
-    public static synchronized int getClientesNoAtendidos() {
-        return clientesNoAtendidos;
-    }
-
-    public static synchronized void setClientesNoAtendidos(int clientesNoAtendidos) {
-        Barberia.clientesNoAtendidos = clientesNoAtendidos;
-    }
-
-    public boolean isCerrado() {
-        return cerrado;
-    }
-
-    public void setCerrado(boolean cerrado) {
-        this.cerrado = cerrado;
-    }
-
-    public synchronized Deque<String> getSalaEspera() {
-        return salaEspera;
-    }
-
-    public boolean isVolverAlMenu() {
-        return volverAlMenu;
-    }
-
-    public void setVolverAlMenu(boolean volverAlMenu) {
-        this.volverAlMenu = volverAlMenu;
-    }
-
-    public synchronized int getNumSillas() {
-        return numSillas;
-    }
-
-    public synchronized void setNumSillas(int numSillas) {
+    // Método constructor
+    public Barberia(int numSillas, float precio) {
         this.numSillas = numSillas;
+        this.precioPelado = precio;
     }
 
-    public boolean isOcupado() {
-        return ocupado;
+    // Médodos getters y setters
+    public static int getContadorClientes() {
+        return contadorClientes;
     }
 
-    public void setOcupado(boolean ocupado) {
+    public static void setContadorClientes(int contadorClientes) {
+        Barberia.contadorClientes = contadorClientes;
+    }
+
+    public synchronized int getNumClientesAtendidos() {
+        return numClientesAtendidos;
+    }
+
+    public synchronized void setNumClientesAtendidos(int numClientesAtendidos) {
+        this.numClientesAtendidos = numClientesAtendidos;
+    }
+
+    public synchronized float getTotalDineroRecaudado() {
+        return totalDineroRecaudado;
+    }
+
+    public synchronized void setTotalDineroRecaudado(float totalDineroRecaudado) {
+        this.totalDineroRecaudado = totalDineroRecaudado;
+    }
+
+    public synchronized int getNumClientesNoAtendidos() {
+        return numClientesNoAtendidos;
+    }
+
+    public synchronized void setNumClientesNoAtendidos(int numClientesNoAtendidos) {
+        this.numClientesNoAtendidos = numClientesNoAtendidos;
+    }
+
+    public synchronized boolean isOcupado() {
+        return this.ocupado;
+    }
+
+    public synchronized void setOcupado(boolean ocupado) {
         this.ocupado = ocupado;
     }
 
-    // Método sincronizado cerrarBarberia()
-    public synchronized void cerrarBarberia() {
-
-        // Se cierra la barberia
-        this.setCerrado(true);
-        // Mensaje de cierre
-        System.out.println("Se va a proceder a cerrar la barbería.");
-        // Se vacia la lista de espera como clinetes no atendidos
-        for (String cliente : this.getSalaEspera()) {
-            // Mensaje de cliente desantendido
-            System.out.println(String.format("El %s dice: ¡Joder! depués de tanto esperar me tengo que ir sin ser servido.",
-                    cliente));
-            // Se actualiza la variable estática
-            Barberia.setClientesNoAtendidos(Barberia.getClientesAtendidos() + 1);
-        }
-
-        // Se avisa a todos los hilos que se encuentren en su wait() que deben terminar su método run()
-        notifyAll();
-
+    public synchronized Deque<String> getListaEspera() {
+        return this.listaEspera;
     }
 
-    // Método sincronizado para que el cliente guarde la cola hasta ser avisado por el barbero
-    public synchronized void entrarSalaEspera() {
-
-        if (this.getSalaEspera().size() < this.getNumSillas()) {
-            // Mensaje de entrada del cliente en la sala de espera
-            System.out.println(String.format("El %s entra en la sala de espera.", Thread.currentThread().getName()));
-
-            // El cliente registra su nombre en la lista de epsera
-            this.getSalaEspera().add(Thread.currentThread().getName());
-            // La sala de espera ya no se encuentra vacía, por lo tanto, se reestablece la variable volverAlMenu = false
-            this.setVolverAlMenu(false);
-
-            // El cliente avisa al barbero (y al resto de clientes) que se encuentra en la sala de espera
-            notifyAll();
-
-            try {
-                // Mientra el barbero no tenga habilitado el booleano para mostrar el menú, mantenemos a los clientes en espera para que no finalicen su método run()r
-                while (this.isOcupado()) {
-
-                    wait();
-                }
-
-                // Mientra el barbero no tenga habilitado el booleano para mostrar el menú, mantenemos a los clientes en espera para que no finalicen su método run()r
-                while (this.isVolverAlMenu()) {
-
-                    wait();
-                }
-                // Mensaje educado de despedida tras haber sido atendido
-//                System.out.println(String.format("El %s dice: Muchas gracias barbero hasta la próxima.",
-//                        Thread.currentThread().getName()));
-            } catch (InterruptedException e) {
-                System.out.println(String.format("El hilo %s ha sido interrumpido inesperadamente.", Thread.currentThread().getName()));
-                Thread.currentThread().interrupt();
-            }
-        } else {
-            System.out.println(String.format("El %s se va de la barberia porque no hay sitio en la sala de espera.", Thread.currentThread().getName()));
-            Barberia.setClientesNoAtendidos(Barberia.getClientesNoAtendidos() + 1);
-        }
-    }
-    // Método sincronizado barbero duerme
-
-    public synchronized void dormir() {
-        // Se establece el barbero como no ocupado
-        this.setOcupado(false);
-        // Mientras la sala de espera esté vacía y la barbería abierta el barbero duerme
-        while (this.getSalaEspera().isEmpty() && !this.isCerrado()) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                System.out.println("El hilo barbero ha sido interrumpido inesperadamente. Error: " + e);
-                Thread.currentThread().interrupt();
-            }
-        }
-        // Mensaje barbero se acaba de despertar
-        System.out.println(String.format("El %s se acaba de despertar de una siesta.", Thread.currentThread().getName()));
+    public boolean isAbierta() {
+        return this.abierta;
     }
 
-    // Método que manda al barbero a dormir una siesta después de cada pelado y oblica a volver al menú
-    public synchronized void siesta() {
-
-        // Se muestra el menú
-        this.mostrarMenu();
-
-        // El barbero se va a dormir
-        this.dormir();
-
+    public void setAbierta(boolean abierta) {
+        this.abierta = abierta;
     }
 
-    // Método mostrar menú
-    public synchronized void mostrarMenu() {
-        // Volver al menú principal
-        this.setVolverAlMenu(true);
-        // Avisa a los clientes que pueden terminar su método run()
-        notifyAll();
+    public int getNumSillas() {
+        return numSillas;
     }
 
-    // Método para avisar a un cliente de la sala de espera para ser atendido
-    public synchronized String avisarCliente() {
-        
-        // Avisa a un cliente de la sala de espera para cortarle el pelo
-        String nombreCliente = this.getSalaEspera().pollFirst();
-
-        // Mensaje de cliente avisado
-        System.out.println(String.format("El %s ha sido avisado por %s para cortarle el pelo y sale de la sala de espera.",
-                nombreCliente,
-                Thread.currentThread().getName()));
-        // Se avisa al cliente que está en estado de espera en la sala de espera
-        notifyAll();
-        // Se establece el barbero como ocupado
-        this.setOcupado(true);
-
-        return nombreCliente;
-
+    public float getPrecioPelado() {
+        return precioPelado;
     }
 
-    // Método sincronizado barbero corta el pelo a un cliente
-    public synchronized void cortarPelo(String nombreCliente) {
-
-        // Se actualizan las variables estáticas
-        Barberia.setClientesAtendidos(Barberia.getClientesAtendidos() + 1);
-        Barberia.setDineroRecaudado(Barberia.getDineroRecaudado() + 5d);
-        // Mensaje de corte finalizado
-        System.out.println(String.format("Se le acaba de cortar el pelo al %s", nombreCliente));
-        // El barbero vuelte a estar operativo
-        this.setOcupado(false);
-
+    public long getTiempoPelado() {
+        return this.tiempoPelado;
     }
 
-    // Método sincronizado para mostrar el balance del día
-    public synchronized void mostrarBalance() {
+    public void setTiempoPelado(long tiempoPelado) {
+        this.tiempoPelado = tiempoPelado;
+    }
 
-        System.out.println("\nBALANCE DEL DÍA");
-        System.out.println(String.format("Clientes atendidos = %d", Barberia.getClientesAtendidos()));
-        System.out.println(String.format("Dinero recaudado = %.2f", Barberia.getDineroRecaudado()));
-        System.out.println(String.format("Clientes no atendidos = %d", Barberia.getClientesNoAtendidos()));
+    public boolean isMostrarMenu() {
+        return mostrarMenu;
+    }
 
+    public void setMostrarMenu(boolean mostrarMenu) {
+        this.mostrarMenu = mostrarMenu;
     }
     
-    public synchronized int mostrarMenuOpciones(){
-        
-        Scanner teclado=new Scanner(System.in);
-        int option;
-        
-                // Menú
-                System.out.println("\nMenú");
-                System.out.println("1. Enviar clientes");
-                System.out.println("2. Consultar estadísticas");
-                System.out.println("3. Cerrar barbería");
-                System.out.print("Introduce una opción: ");
-                option = teclado.nextInt();
-                
-                return option;
+    
+
+    // Método lanzador del menú principal
+    public synchronized int mostrarMenu() {
+
+        // Se declaran
+        Scanner teclado;
+        int opcion;
+
+        // Se instancian variables
+        teclado = new Scanner(System.in);
+
+        // Se muestra el menú en consola
+        do {
+            System.out.println("\nMenú de opciones");
+            System.out.println("\t1. Enviar X clientes");
+            System.out.println("\t2. Consultar estadísticas");
+            System.out.println("\t3. Cerrar la barberia");
+            System.out.print("\t\tIntroduzca una opción: ");
+            opcion = teclado.nextInt();
+        } while (opcion < 1 || opcion > 3);
+
+        // Resultado método
+        return opcion;
+
     }
+
+    // Método mostrar estadísticas
+    public synchronized void mostrarEstadisticas() {
+
+        System.out.println("\n---Estadísticas---");
+        System.out.println(String.format("%-25s %d", "Clientes atendidos =", this.getNumClientesAtendidos()));
+        System.out.println(String.format("%-25s %.2f", "Total dinero recaudado =", this.getTotalDineroRecaudado()));
+        System.out.println(String.format("%-25s %d", "Clientes no atendidos =", this.getNumClientesNoAtendidos()));
+
+    }
+
+    // Método atender del hilo barbero
+    public synchronized void atender() {
+
+        // Si la lista de espera está vacía el barbero duerme
+        while (this.getListaEspera().isEmpty() && this.isAbierta()) {
+            try {
+                this.setMostrarMenu(true);
+                this.wait();
+            } catch (InterruptedException e) {
+                System.err.println(String.format("Hilo %s interrumpido inesperadamente. Error: %s.",
+                        Thread.currentThread().getName(),
+                        e.getMessage()));
+                Thread.currentThread().interrupt();
+            }
+            
+        }
+        this.setMostrarMenu(false);
+
+    }
+
+    // Método para tachar a un cliente de la lista de espera
+    public String extraerNombreCliente() {
+        return this.getListaEspera().pollFirst();
+    }
+
+    public synchronized void avisar() {
+
+        // El barbero avisa a solo un cliente de la sala de espera
+        this.notify();
+
+    }
+
+    // Método para registar clientes en la lista de espera
+    public synchronized void registrar(String nombre) {
+
+        // El cliente se registra en la lista de espera
+        this.getListaEspera().addLast(nombre);
+        // El cliente avisa al barbero de su llegada y registro
+        this.notifyAll();
+
+        // Mientras el barbero esté ocupado el cliente espera
+        while (this.isOcupado()) {
+            try {
+                this.wait();
+            } catch (InterruptedException e) {
+                System.err.println(String.format("Hilo %s interrumpido inesperadamente. Error: %s.",
+                        Thread.currentThread().getName(),
+                        e.getMessage()));
+                Thread.currentThread().interrupt();
+            }
+
+        }
+    }
+
+    // Método para cerrar la barbería
+    public synchronized void cerrar() {
+
+        // Se cierra la barbería
+        this.setAbierta(false);
+
+        // Se avisan a todos los hilos que se encuentren esperando
+        this.notify();
+
+    }
+
 }

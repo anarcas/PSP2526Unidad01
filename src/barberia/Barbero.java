@@ -10,10 +10,8 @@ package barberia;
  */
 public class Barbero implements Runnable {
 
-    // Declaración de atributos
     private final Barberia barberia;
 
-    // Método constructor
     public Barbero(Barberia barberia) {
         this.barberia = barberia;
     }
@@ -22,48 +20,46 @@ public class Barbero implements Runnable {
     public void run() {
 
         // Declaración de variables
-        long tiempoCorte;
+        long tiempoPelado;
         String nombreCliente;
-        long tiempoSiesta;
 
-        // Mientras la barbería se encuentre abierta
-        do {
-            // Si la sala de espera se encuentra vacía el barbero se va a dormir
-            if (barberia.getSalaEspera().isEmpty()) {
-                barberia.dormir();
-                // En caso contrario avisa a un cliente de la sala de espera e intenta cortarle el pelo
-            } else {
-                try {
-                    nombreCliente = barberia.avisarCliente();
-                    // Simulación del tiempo de corte de pelo
-                    tiempoCorte = (long) ((int) (Math.random() * 3 + 1)) * 1000;
-                    Thread.sleep(tiempoCorte);
-                    barberia.cortarPelo(nombreCliente);
-                    // Tras el corte de pelo el barbero se va a sestear
-                    System.out.println(String.format("El %s se va a dormir una siesta tras cortar el pelo al %s y se mostrará el menú.",
-                            Thread.currentThread().getName(),
-                            nombreCliente));
-                    // Simulación de dormir la siesta entre 1 y 2 segundos
-                    tiempoSiesta = (long) ((int) (Math.random() * 2 + 1)) * 1000;
-                    Thread.sleep(tiempoSiesta);
-                    barberia.siesta();
+        // Mientras la barbería esté abierta el barbero comprueba la lista de espera y trata de atender a un cliente, si no hay clientes se va a atender
+        while (barberia.isAbierta()) {
+            // El barbero comprueba la lista de espera y si no hay clientes se va a atender
+            barberia.atender();
+            
+            if (!barberia.getListaEspera().isEmpty()){
+            nombreCliente=barberia.extraerNombreCliente();
+            
 
-                    // Si la sala de espera se queda vacía el barbero que debe lanzar el menú
-                    if (barberia.getSalaEspera().isEmpty()) {
-                        barberia.mostrarMenu();
-                        barberia.mostrarMenuOpciones();
-                    }
+            System.out.println(String.format("El barbero atiende al %s ...", nombreCliente));
 
-                } catch (InterruptedException e) {
-                    System.err.println(String.format("El hilo %s ha sido interrumpido inesperadamente", Thread.currentThread().getName()));
-                    Thread.currentThread().interrupt();
-                }
+            // Se simula el tiempo de pelado
+            tiempoPelado=((long) ((Math.random() * 3 + 1) * 1000));
+            barberia.setTiempoPelado(tiempoPelado);
+            try {
+                // El barbero no está ocupado
+                barberia.setOcupado(true);
+                Thread.sleep(tiempoPelado);
+            } catch (InterruptedException e) {
+                System.out.println(String.format("Hilo %s interrumpido inesperadamente. Error: %s",
+                        Thread.currentThread().getName(),
+                        e.getMessage()));
+                Thread.currentThread().interrupt();
             }
-        } while (!barberia.isCerrado());
+            // El barbero no está ocupado
+            barberia.setOcupado(false);
+            // El barbero avisa al cliente que su corte de pelo ha terminado
+            barberia.avisar();
+            // El barbero despide al cliente
+            System.out.println(String.format("... El barbero ha terminado el corte de pelo del %s", nombreCliente));
+            // Se actualizan las variables
+            barberia.setNumClientesAtendidos(barberia.getNumClientesAtendidos() + 1);
+            barberia.setTotalDineroRecaudado(barberia.getNumClientesAtendidos() * barberia.getPrecioPelado());
+            }
+        }
 
-        // Mensaje de despedida
-        System.out.println(String.format("El %s limpia la barbería y se marcha hasta el día siguiente.", Thread.currentThread().getName()));
-
+        System.out.println("El barbero dice: Mañana será otro día!");
     }
 
 }

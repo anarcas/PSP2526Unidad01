@@ -4,7 +4,6 @@
  */
 package barberia;
 
-import java.util.InputMismatchException;
 import java.util.Scanner;
 
 /**
@@ -20,98 +19,116 @@ public class Principal {
         // TODO code application logic here
 
         // Declaración de variables
-        int opcion;
-        Scanner teclado = new Scanner(System.in);
-        int numClientes;
-        Barberia barberia = new Barberia();
+        int numSillas;
+        float precioPelado;
         Thread hiloBarbero;
         Thread hiloCliente;
+        Scanner teclado;
+        int opcion;
+        int numClientes;
         Thread[] listaClientes;
+        Barberia barberia;
         String nombreCliente;
-        int contadorClientes = 0;
-        String nombreBarbero;
+        int contadorClientes;
 
-        // Nombre del barbero
-        nombreBarbero = "Barbero Juan";
-        // Se instancia el hilo barbero
-        hiloBarbero = new Thread(new Barbero(barberia), nombreBarbero);
+        // Instanciación del recurso compartido
+        teclado = new Scanner(System.in);
+        System.out.println("¿Cuántas sillas dispone la barbería?");
+        System.out.print("\tIntroduzca el número de sillas: ");
+        numSillas = teclado.nextInt();
+        System.out.println("¿Cuál es el precio del corte de pelo?");
+        System.out.print("\tIntroduzca el precio del corte de pelo: ");
+        precioPelado = teclado.nextFloat();
+        barberia = new Barberia(numSillas, precioPelado);
 
-        try {
+        // Se abre la barbería y se pone el cartel de barbería abierta
+        barberia.setAbierta(true);
+        System.out.println("\n--- BARBERÍA ABIERTA ---");
+        Barberia.setContadorClientes(0);
 
-            do {
+        // Se lanza el hilo barbero
+        hiloBarbero = new Thread(new Barbero(barberia));
+        hiloBarbero.start();
+        // El barbero no está ocupado
+        barberia.setOcupado(false);
 
-                // Mostra menú de opciones
-                opcion=barberia.mostrarMenuOpciones();
-                
+        // Mientra la barbería esté abierta seguiran llegando clientes
+        while (barberia.isAbierta()) {
 
-                switch (opcion) {
+            // Mostrar el menú
+            opcion = barberia.mostrarMenu();
+            
+            // Estructura condicional en función de la opción seleccionada
+            switch (opcion) {
 
-                    case 1:
+                case 1:
+                    // Se solicitan el número de clientes a lanzar
+                    System.out.println("¿Cuántos clientes desea enviar a la barbería?");
+                    System.out.print("\tNúmero de clientes: ");
+                    numClientes = teclado.nextInt();
+                    listaClientes = new Thread[numClientes];
 
-                        hiloBarbero.start();
-                        // Se reinicia la variable volverAlMenu
-                        barberia.setVolverAlMenu(false);
-
-                        // Preguntas al usuario
-                        System.out.print("¿Cuántos clientes deseas enviar? ");
-                        numClientes = teclado.nextInt();
-                        listaClientes = new Thread[numClientes];
-                        System.out.print("¿Cuántas sillas dispone la sala de espera? ");
-                        barberia.setNumSillas(teclado.nextInt());
-
-                        // Reinicio del contador de clientes
-                        // Se lanzan hilos clientes
-                        for (int i = 0; i < listaClientes.length; i++) {
-                            contadorClientes++;
-                            nombreCliente = String.format("Cliente%d", contadorClientes);
-                            hiloCliente = new Thread(new Cliente(barberia), nombreCliente);
-                            listaClientes[i] = hiloCliente;
-                            listaClientes[i].start();
-                        }
+                    // Se lanzan los hilos clientes
+                    for (int i = 0; i < listaClientes.length; i++) {
+                        Barberia.setContadorClientes(Barberia.getContadorClientes()+1);
+                        contadorClientes=Barberia.getContadorClientes();
+                        nombreCliente = String.format("Cliente %d", contadorClientes);
+                        hiloCliente = new Thread(new Cliente(barberia), nombreCliente);
+                        listaClientes[i] = hiloCliente;
+                        listaClientes[i].start();
                         
-                        // Los hilos clientes se esperan
-                        for (int i = 0; i < listaClientes.length; i++) {
-                            listaClientes[i].join();
+                    }
+
+                    // Los hilos clientes se esperan
+                    for (Thread hilo : listaClientes) {
+                        try {
+                            hilo.join();
+                            // Pausa de cortesía para asegurar que el hilo barbero haya concluido y se encuentre en su wait()
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            System.err.println(String.format("Hilo %s interrumpido inesperadamente. Error: %s",
+                                    Thread.currentThread().getName(),
+                                    e.getMessage()));
+                            Thread.currentThread().interrupt();
                         }
+                    }
 
-                        break;
+                    
+                    System.out.println(String.format("%sSimulación de clientes terminada.%s","\u001B[32m","\u001B[0m"));
+                    
+                    break;
 
-                    case 2:
-                        barberia.mostrarBalance();
+                case 2:
+                    // Se muestran las estadísticas
+                    barberia.mostrarEstadisticas();
 
-                        break;
+                    break;
 
-                    case 3:
-                        barberia.cerrarBarberia();
-                        barberia.mostrarBalance();
-                        // El hilo barbero espera solo cuando se cierre la barbería
+                case 3:
+                    // Cerrar la barbería
+                    barberia.cerrar();
+                    try {
                         hiloBarbero.join();
-            
-                        System.out.println("\n---BARBERIA CERRADA---\n");
+                    } catch (InterruptedException e) {
+                        System.err.println(String.format("Hilo %s interrumpido inesperadamente. Error: %s",
+                                Thread.currentThread().getName(),
+                                e.getMessage()));
+                        Thread.currentThread().interrupt();
+                    }
 
-                        break;
+                    break;
 
-                    default:
-                        System.out.println("Opción no válida.");
+                default:
 
-                }
+                    System.err.println("Opción no válida");
 
-            } while (opcion != 3 || barberia.isVolverAlMenu());
+            }
 
-            
-            // Cierre de recursos
-            teclado.close();
-
-        } catch (InputMismatchException e) {
-            System.err.println("El usuario ha introducido un valor incorrecto. Error: " + e);
-            // Limpieza del buffer
-            teclado.nextInt();
-            // Se alimenta no admitido para volver al menú
-            opcion = -1;
-        } catch (InterruptedException e) {
-            System.err.println(String.format("Hilo %s interrumpido inesperadamente. Error: %s", Thread.currentThread().getName(), e));
-            Thread.currentThread().interrupt();
         }
+
+        // Se muestran las estadísticas y se cuelga el cartel de barbería cerrada
+        barberia.mostrarEstadisticas();
+        System.out.println("\n--- BARBERÍA CERRDADA ---");
 
     }
 
