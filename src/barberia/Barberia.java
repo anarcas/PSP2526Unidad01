@@ -24,12 +24,8 @@ public class Barberia {
     private final int numSillas;
     private final float precioPelado;
     private long tiempoPelado;
-    private boolean mostrarMenu;
-
-    /**
-     * Variable estática
-     */
-    public static int contadorClientes;
+    private String nombreCliente;
+    private static int contadorClientes;
 
     // Método constructor
     public Barberia(int numSillas, float precio) {
@@ -106,16 +102,17 @@ public class Barberia {
         this.tiempoPelado = tiempoPelado;
     }
 
-    public boolean isMostrarMenu() {
-        return mostrarMenu;
+    public synchronized String getNombreCliente() {
+        return nombreCliente;
     }
 
-    public void setMostrarMenu(boolean mostrarMenu) {
-        this.mostrarMenu = mostrarMenu;
+    public synchronized void setNombreCliente(String nombreCliente) {
+        this.nombreCliente = nombreCliente;
     }
     
     
-
+   
+    
     // Método lanzador del menú principal
     public synchronized int mostrarMenu() {
 
@@ -144,7 +141,7 @@ public class Barberia {
     // Método mostrar estadísticas
     public synchronized void mostrarEstadisticas() {
 
-        System.out.println("\n---Estadísticas---");
+        System.out.println("\n--- Estadísticas ---");
         System.out.println(String.format("%-25s %d", "Clientes atendidos =", this.getNumClientesAtendidos()));
         System.out.println(String.format("%-25s %.2f", "Total dinero recaudado =", this.getTotalDineroRecaudado()));
         System.out.println(String.format("%-25s %d", "Clientes no atendidos =", this.getNumClientesNoAtendidos()));
@@ -154,10 +151,9 @@ public class Barberia {
     // Método atender del hilo barbero
     public synchronized void atender() {
 
-        // Si la lista de espera está vacía el barbero duerme
+        // Mientras la sala de espera esté vacía y la barbería esté abierta, el barbero duerme
         while (this.getListaEspera().isEmpty() && this.isAbierta()) {
             try {
-                this.setMostrarMenu(true);
                 this.wait();
             } catch (InterruptedException e) {
                 System.err.println(String.format("Hilo %s interrumpido inesperadamente. Error: %s.",
@@ -165,20 +161,21 @@ public class Barberia {
                         e.getMessage()));
                 Thread.currentThread().interrupt();
             }
-            
         }
-        this.setMostrarMenu(false);
 
     }
 
-    // Método para tachar a un cliente de la lista de espera
+    // Método para extraer el nombre del cliente de la lista de registros de la sala de espera
     public String extraerNombreCliente() {
+        
+        // Se extrae el nombre del cliente de la lista de espera por orden de llegada
         return this.getListaEspera().pollFirst();
     }
 
+    // Método sincronizado para avisar a un cliente
     public synchronized void avisar() {
 
-        // El barbero avisa a solo un cliente de la sala de espera
+        // El barbero avisa uno a uno a los clientes que se encuentran en la sala de espera
         this.notify();
 
     }
@@ -188,10 +185,10 @@ public class Barberia {
 
         // El cliente se registra en la lista de espera
         this.getListaEspera().addLast(nombre);
-        // El cliente avisa al barbero de su llegada y registro
+        // El cliente avisa al barbero de su llegada y registro, debe ser un notifyAll() para asegurar que el barbero queda avisado
         this.notifyAll();
 
-        // Mientras el barbero esté ocupado el cliente espera
+        // Mientras el barbero esté ocupado, el cliente espera en la sala de espera
         while (this.isOcupado()) {
             try {
                 this.wait();
@@ -211,7 +208,7 @@ public class Barberia {
         // Se cierra la barbería
         this.setAbierta(false);
 
-        // Se avisan a todos los hilos que se encuentren esperando
+        // Se avisa solo al supuestamente hilo barbero que se encuentra durmiendo
         this.notify();
 
     }

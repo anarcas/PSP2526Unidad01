@@ -45,7 +45,6 @@ public class Cliente implements Runnable {
                 // El cliente se anota en la lista de espera y avisa al barbero
                 barberia.registrar(Thread.currentThread().getName());
                 // El cliente es atendido
-                // Se le atribuye un segundo más al cliente para garantizar que el barbero duerme antes de haber sido atendido el cliente y por lo tanto antes de mostrarse el menú
                 tiempoPelado = barberia.getTiempoPelado();
                 try {
                     Thread.sleep(tiempoPelado);
@@ -55,10 +54,6 @@ public class Cliente implements Runnable {
                             e.getMessage()));
                     Thread.currentThread().interrupt();
                 }
-                System.out.println(String.format("%sEl %s dice: gracias barbero por el corte de pelo%s",
-                        "\u001B[36m",
-                        Thread.currentThread().getName(),
-                        "\u001B[0m"));
             } else {
                 System.out.println(String.format("%sEl %s dice: Joder!! Siempre igual, nunca hay sitio en esta barbería..., bueno..., volveré otro día%s",
                         "\u001B[31m",
@@ -67,8 +62,6 @@ public class Cliente implements Runnable {
                 // Se actualiza la variable de número de clientes no atendidos
                 barberia.setNumClientesNoAtendidos(barberia.getNumClientesNoAtendidos() + 1);
             }
-            // Se imprime por consola la finalización del método run del hilo cliente
-            //System.out.println(String.format("\tEl %s se terminado su método run()",Thread.currentThread().getName()));
         }
     }
 

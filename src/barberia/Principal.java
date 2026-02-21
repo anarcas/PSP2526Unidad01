@@ -83,8 +83,8 @@ public class Principal {
                     for (Thread hilo : listaClientes) {
                         try {
                             hilo.join();
-                            // Pausa de cortesía para asegurar que el hilo barbero haya concluido y se encuentre en su wait()
-                            Thread.sleep(100);
+                            // Pausa de cortesía para asegurar que el hilo barbero haya concluido su último pelado y se encuentre durmiendo
+                            Thread.sleep(10);
                         } catch (InterruptedException e) {
                             System.err.println(String.format("Hilo %s interrumpido inesperadamente. Error: %s",
                                     Thread.currentThread().getName(),
@@ -94,7 +94,7 @@ public class Principal {
                     }
 
                     
-                    System.out.println(String.format("%sSimulación de clientes terminada.%s","\u001B[32m","\u001B[0m"));
+                    System.out.println(String.format("%sSimulación de clientes terminada.%s","\u001B[35m","\u001B[0m"));
                     
                     break;
 
@@ -107,6 +107,7 @@ public class Principal {
                 case 3:
                     // Cerrar la barbería
                     barberia.cerrar();
+                    // Se espera que el hilo barbero finalice su método run()
                     try {
                         hiloBarbero.join();
                     } catch (InterruptedException e) {
@@ -128,7 +129,7 @@ public class Principal {
 
         // Se muestran las estadísticas y se cuelga el cartel de barbería cerrada
         barberia.mostrarEstadisticas();
-        System.out.println("\n--- BARBERÍA CERRDADA ---");
+        System.out.println("\n--- BARBERÍA CERRDADA ---\n");
 
     }
 
